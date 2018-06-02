@@ -3,6 +3,8 @@
  *
  * Created: 6/1/2018 7:42:36 PM
  */
+#define buzzer_bit
+#define buzzer_port
 #define timer_vect TIMER1_COMPA_vect
 #define mode_bit
 #define mode_port
@@ -58,8 +60,16 @@ void AdjustAlarm(){
 }
 
 void CancelAlarm(){
+    fire_alarm = 0;
     alarm_state = 0;
     alarm_count = 0;
+}
+
+void buzzer(){
+    set_bit(buzzer_port, buzzer_bit);
+    _delay_ms(200);
+    reset_bit(buzzer_port, buzzer_bit);
+    _delay_ms(200);
 }
 
 void UpdateTime(){
@@ -91,25 +101,39 @@ void UpdateLCD(){
 
 ISR(mode_vect){
     //mode button is clicked
-    _delay_ms(500);
+    //close the alarm if it is fired
+    if(fire_alarm == 1){
+        CancelAlarm();
+        UpdateLCD();
+    }
     mode = (mode+1)%n_modes;
     toggle_count = 0;
+    _delay_ms(500);
 }
 
 ISR(toggle_vect){
     //toggle button is clicked
-    _delay_ms(500);
+    //close the alarm if it is fired
+    if(fire_alarm == 1){
+        CancelAlarm();
+        UpdateLCD();
+    }
     switch(mode){
         case 0 : n_toggles = 8;
         case 1 : n_toggles = 6;
     }
 
     toggle_count = (toggle_count+1)%n_toggles;
+    _delay_ms(500);
 }
 
 ISR(up_vect){
     //up button is clicked
-    _delay_ms(500);
+    //close the alarm if it is fired
+    if(fire_alarm == 1){
+        CancelAlarm();
+        UpdateLCD();
+    }
     if(mode == 0 ){
         switch(toggle_count){
             case 0 : ;
@@ -139,11 +163,16 @@ ISR(up_vect){
             AdjustAlarm();
     }
     UpdateLCD();
+    _delay_ms(500);
 }
 
 ISR(down_vect){
     //down button is clicked
-    _delay_ms(500);
+    //close the alarm if it is fired
+    if(fire_alarm == 1){
+        CancelAlarm();
+        UpdateLCD();
+    }
     if(mode == 0 ){
         switch(toggle_count){
             case 0 : ;
@@ -173,17 +202,25 @@ ISR(down_vect){
             AdjustAlarm();
     }
     UpdateLCD();
+    _delay_ms(500);
 }
 
+/*
 ISR(ok_vect){
     //ok button is clicked
-    _delay_ms(500);
+    //close the alarm if it is fired
+    if(fire_alarm == 1){
+        CancelAlarm();
+        UpdateLCD();
+    }
     switch(mode){
         case 0 : toggle_count = 0;
         case 1 : mode = 0;
     }
     UpdateLCD();
+    _delay_ms(500);
 }
+*/
 
 ISR(timer_vect){
     //every 1 second
@@ -215,8 +252,25 @@ int main(void)
 
     // Insert code
 
-    while(1)
-    ;
+    while(1){
+        if(fire_alarm == 1)
+            buzzer();
+        
+        if(read_bit(ok_port, ok_bit) == 1){
+            //ok button is clicked
+            //close the alarm if it is fired
+            if(fire_alarm == 1){
+                CancelAlarm();
+                UpdateLCD();
+            }
+            switch(mode){
+                case 0 : toggle_count = 0;
+                case 1 : mode = 0, toggle_count = 0;
+            }
+            UpdateLCD();
+            _delay_ms(500);
+        }
+    }
 
     return 0;
 }
