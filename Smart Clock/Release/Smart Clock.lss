@@ -13,21 +13,13 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, READONLY
   4 .note.gnu.avr.deviceinfo 00000040  00000000  00000000  000001d0  2**2
                   CONTENTS, READONLY
-  5 .debug_aranges 00000030  00000000  00000000  00000210  2**0
+  5 .debug_info   000005f4  00000000  00000000  00000210  2**0
                   CONTENTS, READONLY, DEBUGGING
-  6 .debug_info   000006eb  00000000  00000000  00000240  2**0
+  6 .debug_abbrev 000005a2  00000000  00000000  00000804  2**0
                   CONTENTS, READONLY, DEBUGGING
-  7 .debug_abbrev 00000644  00000000  00000000  0000092b  2**0
+  7 .debug_line   00000133  00000000  00000000  00000da6  2**0
                   CONTENTS, READONLY, DEBUGGING
-  8 .debug_line   0000024e  00000000  00000000  00000f6f  2**0
-                  CONTENTS, READONLY, DEBUGGING
-  9 .debug_frame  00000058  00000000  00000000  000011c0  2**2
-                  CONTENTS, READONLY, DEBUGGING
- 10 .debug_str    0000034b  00000000  00000000  00001218  2**0
-                  CONTENTS, READONLY, DEBUGGING
- 11 .debug_loc    00000049  00000000  00000000  00001563  2**0
-                  CONTENTS, READONLY, DEBUGGING
- 12 .debug_ranges 00000020  00000000  00000000  000015ac  2**0
+  8 .debug_str    00000208  00000000  00000000  00000ed9  2**0
                   CONTENTS, READONLY, DEBUGGING
 
 Disassembly of section .text:
@@ -88,55 +80,27 @@ Disassembly of section .text:
   8c:	0c 94 00 00 	jmp	0	; 0x0 <__vectors>
 
 00000090 <CTC_mode>:
-int SECONDS = 0;
-
-void CTC_mode ()
-{
-	// Set the Timer Mode to CTC
-	TCCR0A |= (1 << WGM01);
   90:	84 b5       	in	r24, 0x24	; 36
   92:	82 60       	ori	r24, 0x02	; 2
   94:	84 bd       	out	0x24, r24	; 36
-
-	// Set the value that you want to count to
-	OCR0A = 0x3c;
   96:	8c e3       	ldi	r24, 0x3C	; 60
   98:	87 bd       	out	0x27, r24	; 39
-	
-	// start the timer (No Prescalling)
-	TCCR0B |= (1 << CS00);
   9a:	85 b5       	in	r24, 0x25	; 37
   9c:	81 60       	ori	r24, 0x01	; 1
   9e:	85 bd       	out	0x25, r24	; 37
-	
-	TIMSK0 |= (1 << OCIE0A);    //Set the ISR COMPA vector
   a0:	ee e6       	ldi	r30, 0x6E	; 110
   a2:	f0 e0       	ldi	r31, 0x00	; 0
   a4:	80 81       	ld	r24, Z
   a6:	82 60       	ori	r24, 0x02	; 2
   a8:	80 83       	st	Z, r24
-
-	sei();         //enable interrupts
   aa:	78 94       	sei
   ac:	08 95       	ret
 
 000000ae <main>:
-}
-
-int main(void)
-{
-	
-	CTC_mode();
   ae:	0e 94 48 00 	call	0x90	; 0x90 <CTC_mode>
   b2:	ff cf       	rjmp	.-2      	; 0xb2 <main+0x4>
 
 000000b4 <__vector_14>:
-		
-    }
-}
-
-ISR (TIMER0_COMPA_vect)  // timer0 overflow interrupt
-{
   b4:	1f 92       	push	r1
   b6:	0f 92       	push	r0
   b8:	0f b6       	in	r0, 0x3f	; 63
@@ -144,64 +108,33 @@ ISR (TIMER0_COMPA_vect)  // timer0 overflow interrupt
   bc:	11 24       	eor	r1, r1
   be:	8f 93       	push	r24
   c0:	9f 93       	push	r25
-	SECONDS++;
   c2:	80 91 00 01 	lds	r24, 0x0100	; 0x800100 <_edata>
   c6:	90 91 01 01 	lds	r25, 0x0101	; 0x800101 <_edata+0x1>
   ca:	01 96       	adiw	r24, 0x01	; 1
-	//display time
-	if(SECONDS==60)
   cc:	8c 33       	cpi	r24, 0x3C	; 60
   ce:	91 05       	cpc	r25, r1
   d0:	29 f0       	breq	.+10     	; 0xdc <__vector_14+0x28>
-    }
-}
-
-ISR (TIMER0_COMPA_vect)  // timer0 overflow interrupt
-{
-	SECONDS++;
   d2:	90 93 01 01 	sts	0x0101, r25	; 0x800101 <_edata+0x1>
   d6:	80 93 00 01 	sts	0x0100, r24	; 0x800100 <_edata>
   da:	1e c0       	rjmp	.+60     	; 0x118 <__vector_14+0x64>
-	//display time
-	if(SECONDS==60)
-	{
-		SECONDS=0;
   dc:	10 92 01 01 	sts	0x0101, r1	; 0x800101 <_edata+0x1>
   e0:	10 92 00 01 	sts	0x0100, r1	; 0x800100 <_edata>
-		MINUTES++;
   e4:	80 91 02 01 	lds	r24, 0x0102	; 0x800102 <MINUTES>
   e8:	90 91 03 01 	lds	r25, 0x0103	; 0x800103 <MINUTES+0x1>
   ec:	01 96       	adiw	r24, 0x01	; 1
-		//display time
-		if(MINUTES==60)
   ee:	8c 33       	cpi	r24, 0x3C	; 60
   f0:	91 05       	cpc	r25, r1
   f2:	29 f0       	breq	.+10     	; 0xfe <__vector_14+0x4a>
-	SECONDS++;
-	//display time
-	if(SECONDS==60)
-	{
-		SECONDS=0;
-		MINUTES++;
   f4:	90 93 03 01 	sts	0x0103, r25	; 0x800103 <MINUTES+0x1>
   f8:	80 93 02 01 	sts	0x0102, r24	; 0x800102 <MINUTES>
   fc:	0d c0       	rjmp	.+26     	; 0x118 <__vector_14+0x64>
-		//display time
-		if(MINUTES==60)
-		{
-			MINUTES=0;
   fe:	10 92 03 01 	sts	0x0103, r1	; 0x800103 <MINUTES+0x1>
  102:	10 92 02 01 	sts	0x0102, r1	; 0x800102 <MINUTES>
-			HOURS++;
  106:	80 91 04 01 	lds	r24, 0x0104	; 0x800104 <HOURS>
  10a:	90 91 05 01 	lds	r25, 0x0105	; 0x800105 <HOURS+0x1>
  10e:	01 96       	adiw	r24, 0x01	; 1
  110:	90 93 05 01 	sts	0x0105, r25	; 0x800105 <HOURS+0x1>
  114:	80 93 04 01 	sts	0x0104, r24	; 0x800104 <HOURS>
-			//display time
-		}
-		
-	}
  118:	9f 91       	pop	r25
  11a:	8f 91       	pop	r24
  11c:	0f 90       	pop	r0
