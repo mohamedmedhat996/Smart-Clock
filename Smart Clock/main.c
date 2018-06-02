@@ -2,9 +2,13 @@
  * Smart Clock.c
  *
  * Created: 6/1/2018 7:42:36 PM
+<<<<<<< Updated upstream
  */
 #define buzzer_bit
 #define buzzer_port
+=======
+ */ 
+>>>>>>> Stashed changes
 #define timer_vect TIMER1_COMPA_vect
 #define mode_bit
 #define mode_port
@@ -24,7 +28,15 @@
 #define down_port
 #define down_vect PCINT3_vect
 #define LCD_port
+
+#define SET_BIT(ADDRESS, BIT) ADDRESS |= (1<<BIT)
+#define RESET_BIT(ADDRESS, BIT) ADDRESS &= ~(1<<BIT)
+#define TOGGLE_BIT(ADDRESS, BIT) ADDRESS ^= (1<<BIT)
+#define READ_BIT(ADDRESS, BIT) ((ADDRESS & (1<<BIT))>>BIT)
+
 #include <avr/io.h>
+#include <util/delay.h>
+#include <avr/interrupt.h>
 
 unsigned short mode = 0;
 unsigned short n_modes = 2;
@@ -52,6 +64,22 @@ unsigned short alarm_hour = 0;
 unsigned short alarm_minute = 0;
 unsigned short alarm_second = 0;
 
+void CTC_mode ()
+{
+	// Set the Timer Mode to CTC with 256 From prescaler
+	TCCR1B |= (1<<WGM12)|(1<<CS12);
+
+	//OCRn =  [ (clock_speed / Prescaler_value) * Desired_time_in_Seconds ] - 1
+	//OCRn =  [ (16 M / 256) * 1 ] - 1 = 62499 = F423 Hex
+	// Set the value that you want to count to 
+	OCR1AH = 0xF4;
+	OCR1AL =0x23;
+	
+	TIMSK1 |= (1 << OCIE0A);    //Set the ISR COMPA vector
+
+	sei();         //enable interrupts
+}
+
 void AdjustAlarm(){
     alarm_state = 1;
     alarm_hour = (alarm_value/60*60)%13;
@@ -66,9 +94,9 @@ void CancelAlarm(){
 }
 
 void buzzer(){
-    set_bit(buzzer_port, buzzer_bit);
+    SET_BIT(buzzer_port, buzzer_bit);
     _delay_ms(200);
-    reset_bit(buzzer_port, buzzer_bit);
+    RESET_BIT(buzzer_port, buzzer_bit);
     _delay_ms(200);
 }
 
@@ -249,16 +277,14 @@ ISR(timer_vect){
 
 int main(void)
 {
-
-    // Insert code
-
+	CTC_mode();
     while(1){
         if(fire_alarm == 1)
             buzzer();
         
-        if(read_bit(ok_port, ok_bit) == 1){
-            //ok button is clicked
-            //close the alarm if it is fired
+        if(READ_BIT(ok_port, ok_bit) == 0){
+            //Ok button is clicked
+            //Close the alarm if it is fired
             if(fire_alarm == 1){
                 CancelAlarm();
                 UpdateLCD();
@@ -274,3 +300,4 @@ int main(void)
 
     return 0;
 }
+
