@@ -20,10 +20,10 @@
 #define ok_vect
 #define up_bit
 #define up_port
-#define up_vect PCINT3_vect
+#define up_vect PCINT2_vect
 #define down_bit
 #define down_port
-#define down_vect PCINT2_vect
+#define down_vect PCINT1_vect
 #define LCD_port
 
 #define SET_BIT(ADDRESS, BIT) ADDRESS |= (1<<BIT)
@@ -34,6 +34,9 @@
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
+#include "adc.h"
+#include "LCD.h"
+
 unsigned short am_pm = 0;
 unsigned short mode = 0;
 unsigned short n_modes = 2;
@@ -282,12 +285,14 @@ ISR(timer_vect){
 
 int main(void)
 {
+	SET_BIT(PCMSK1,3)   //PCINT11
+	SET_BIT(PCMSK2,1)   //PCINT17
 	CTC_mode();
     while(1){
         if(fire_alarm == 1)
             buzzer();
         if(READ_BIT(ok_port, ok_bit) == 0){
-            //Ok button is clicked
+            // button is clicked
             //Close the alarm if it is fired
             if(fire_alarm == 1){
                 CancelAlarm();
