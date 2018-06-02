@@ -6,27 +6,24 @@
  */
 #define buzzer_bit
 #define buzzer_port
-=======
- */ 
->>>>>>> Stashed changes
 #define timer_vect TIMER1_COMPA_vect
 #define mode_bit
 #define mode_port
-#define mode_vect PCINT0_vect
+#define mode_vect INT0_vect
 #define temp_bit
 #define temp_port
 #define toggle_bit
 #define toggle_port
-#define toggle_vect PCINT1_vect
+#define toggle_vect INT1_vect
 #define ok_bit
 #define ok_port
-#define ok_vect PCINT2_vect
+#define ok_vect 
 #define up_bit
 #define up_port
 #define up_vect PCINT3_vect
 #define down_bit
 #define down_port
-#define down_vect PCINT3_vect
+#define down_vect PCINT2_vect
 #define LCD_port
 
 #define SET_BIT(ADDRESS, BIT) ADDRESS |= (1<<BIT)
@@ -66,7 +63,7 @@ unsigned short alarm_second = 0;
 
 void CTC_mode ()
 {
-	// Set the Timer Mode to CTC with 256 From prescaler
+	// Set the Timer Mode to CTC with 256 From scale
 	TCCR1B |= (1<<WGM12)|(1<<CS12);
 
 	//OCRn =  [ (clock_speed / Prescaler_value) * Desired_time_in_Seconds ] - 1
