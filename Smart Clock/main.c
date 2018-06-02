@@ -4,8 +4,8 @@
  * Created: 6/1/2018 7:42:36 PM
 <<<<<<< Updated upstream
  */
-#define buzzer_bit
-#define buzzer_port
+#define buzzer_bit 0
+#define buzzer_port PORTB
 #define timer_vect TIMER1_COMPA_vect
 #define mode_bit
 #define mode_port
@@ -15,9 +15,9 @@
 #define toggle_bit
 #define toggle_port
 #define toggle_vect INT1_vect
-#define ok_bit
-#define ok_port
-#define ok_vect 
+#define ok_bit 1
+#define ok_port PINB
+#define ok_vect
 #define up_bit
 #define up_port
 #define up_vect PCINT3_vect
@@ -34,7 +34,7 @@
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
-
+unsigned short am_pm = 0;
 unsigned short mode = 0;
 unsigned short n_modes = 2;
 
@@ -43,6 +43,7 @@ unsigned short toggle_count = 0;
 
 unsigned short temperature_c = 0;
 
+unsigned long time = 0;
 unsigned short hour = 1;
 unsigned short minute = 0;
 unsigned short second = 0;
@@ -61,6 +62,13 @@ unsigned short alarm_hour = 0;
 unsigned short alarm_minute = 0;
 unsigned short alarm_second = 0;
 
+unsigned short toggle(unsigned short d){
+    if(d == 0)
+        d=1;
+    else
+        d=0;
+    return d;
+}
 void CTC_mode ()
 {
 	// Set the Timer Mode to CTC with 256 From scale
@@ -68,10 +76,10 @@ void CTC_mode ()
 
 	//OCRn =  [ (clock_speed / Prescaler_value) * Desired_time_in_Seconds ] - 1
 	//OCRn =  [ (16 M / 256) * 1 ] - 1 = 62499 = F423 Hex
-	// Set the value that you want to count to 
+	// Set the value that you want to count to
 	OCR1AH = 0xF4;
 	OCR1AL =0x23;
-	
+
 	TIMSK1 |= (1 << OCIE0A);    //Set the ISR COMPA vector
 
 	sei();         //enable interrupts
@@ -79,7 +87,7 @@ void CTC_mode ()
 
 void AdjustAlarm(){
     alarm_state = 1;
-    alarm_hour = (alarm_value/60*60)%13;
+    alarm_hour = (alarm_value/3600)%13;
     alarm_minute = (alarm_value/60)%61;
     alarm_second = (alarm_value)%61;
 }
@@ -98,21 +106,21 @@ void buzzer(){
 }
 
 void UpdateTime(){
-    time = time%(24*60*60);
-    hour = (time/60*60)%12 + 1;
+    time = time%(86400);
+    hour = (time/3600)%12 + 1;
     minute = (time/60)%61;
     second = time%61;
 }
 
 void UpdateDate(){
-    days = (days + time/(24*60*60-1))%361;
+    days = (days + time/(86400-1))%361;
     year = days/361;
     month = (days/13)%31;
     day = days%31;
 }
 
 void UpdateTemperature(){
-    temperature_c = adc_read(&temp_port, temp_bit);
+    temperature_c = adc_read(temp_bit);
 }
 
 void UpdateLCD(){
@@ -144,8 +152,8 @@ ISR(toggle_vect){
         UpdateLCD();
     }
     switch(mode){
-        case 0 : n_toggles = 8;
-        case 1 : n_toggles = 6;
+        case 0 : n_toggles = 8;break;
+        case 1 : n_toggles = 6;break;
     }
 
     toggle_count = (toggle_count+1)%n_toggles;
@@ -161,26 +169,26 @@ ISR(up_vect){
     }
     if(mode == 0 ){
         switch(toggle_count){
-            case 0 : ;
-            case 1 : time += 60*60;
-            case 2 : time += 60;
-            case 3 : time++;
-            case 4 : pm/am
-            case 5 : days += 1;
-            case 6 : days += 30;
-            case 7 : days += 360;
+            case 0 : ;break;
+            case 1 : time += 3600; break;
+            case 2 : time += 60; break;
+            case 3 : time++; break;
+            case 4 : toggle(am_pm); break;
+            case 5 : days += 1; break;
+            case 6 : days += 30; break;
+            case 7 : days += 360; break;
         }
         UpdateDate();
         UpdateTime();
     }
     else if(mode == 1){//alarm mode
         switch(toggle_count){
-            case 0 : ;
-            case 1 : alarm_value += 60*60;
-            case 2 : alarm_value += 60;
-            case 3 : alarm_value++;
-            case 4 : pm/am
-            case 5 : toggle(alarm_state);
+            case 0 : ;break;
+            case 1 : alarm_value += 3600; break;
+            case 2 : alarm_value += 60; break;
+            case 3 : alarm_value++; break;
+            case 4 : am_pm = toggle(am_pm); break;
+            case 5 : alarm_state = toggle(alarm_state); break;;
         }
         if(alarm_state == 0)
             CancelAlarm();
@@ -201,25 +209,25 @@ ISR(down_vect){
     if(mode == 0 ){
         switch(toggle_count){
             case 0 : ;
-            case 1 : time -= 60*60;
-            case 2 : time -= 60;
-            case 3 : time--;
-            case 4 : pm/am
-            case 5 : days -= 1;
-            case 6 : days -= 30;
-            case 7 : days -= 360;
+            case 1 : time -= 3600; break;
+            case 2 : time -= 60; break;
+            case 3 : time--; break;
+            case 4 : toggle(am_pm); break;
+            case 5 : days -= 1; break;
+            case 6 : days -= 30; break;
+            case 7 : days -= 360; break;
         }
         UpdateDate();
         UpdateTime();
     }
     else if(mode == 1){//alarm mode
         switch(toggle_count){
-            case 0 : ;
-            case 1 : alarm_value -= 60*60;
-            case 2 : alarm_value -= 60;
-            case 3 : alarm_value--;
-            case 4 : pm/am
-            case 5 : toggle(alarm_state);
+            case 0 : break;
+            case 1 : alarm_value -= 3600; break;
+            case 2 : alarm_value -= 60; break;
+            case 3 : alarm_value--; break;
+            case 4 : am_pm = toggle(am_pm); break;
+            case 5 : alarm_state = toggle(alarm_state); break;
         }
         if(alarm_state == 0)
             CancelAlarm();
@@ -278,7 +286,6 @@ int main(void)
     while(1){
         if(fire_alarm == 1)
             buzzer();
-        
         if(READ_BIT(ok_port, ok_bit) == 0){
             //Ok button is clicked
             //Close the alarm if it is fired
@@ -287,8 +294,8 @@ int main(void)
                 UpdateLCD();
             }
             switch(mode){
-                case 0 : toggle_count = 0;
-                case 1 : mode = 0, toggle_count = 0;
+                case 0 : toggle_count = 0; break;
+                case 1 : mode = 0, toggle_count = 0; break;
             }
             UpdateLCD();
             _delay_ms(500);
@@ -297,4 +304,3 @@ int main(void)
 
     return 0;
 }
-
