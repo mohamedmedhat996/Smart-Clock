@@ -131,9 +131,12 @@ void DisplayTime(int x,int y){
 	Lcd4_Write_String(" ");
 	
 	if (am_pm_t==0)
-		Lcd4_Write_String("AM");
+	Lcd4_Write_String("AM");
 	else
-		Lcd4_Write_String("PM");
+	Lcd4_Write_String("PM");
+	Lcd4_Write_Char(' ');
+	
+	if(alarm_state==1) Lcd4_Write_Char(0xFC);
 }
 
 void DisplayTemperature(int x, int y){
@@ -143,7 +146,7 @@ void DisplayTemperature(int x, int y){
 	Lcd4_Write_Char(Temperature[0]);
 	Lcd4_Write_Char(Temperature[1]);
 	Lcd4_Write_Char(Temperature[2]);
-	Lcd4_Write_Char('*');
+	Lcd4_Write_Char(0xDF);
 	Lcd4_Write_Char('C');
 }
 
