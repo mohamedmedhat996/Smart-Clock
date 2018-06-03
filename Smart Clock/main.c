@@ -14,8 +14,8 @@
 #define toggle_bit
 #define toggle_port
 #define toggle_vect INT1_vect
-#define ok_bit 1
-#define ok_port PINB
+#define ok_bit 4
+#define ok_port PINC
 #define ok_vect
 #define up_bit
 #define up_port
@@ -50,7 +50,7 @@ unsigned short hour = 1;
 unsigned short minute = 0;
 unsigned short second = 0;
 
-unsigned short days = 0;
+unsigned short days = 1;
 unsigned short day = 1;
 unsigned short year = 1;
 unsigned short month = 1;
@@ -62,6 +62,89 @@ unsigned short fire_alarm = 0;
 unsigned short alarm_hour = 0;
 unsigned short alarm_minute = 0;
 unsigned short alarm_second = 0;
+
+void DisplayDate(int x,int y){
+	Lcd4_Set_Cursor(x,y);
+	char Year[4], Month[2], Day[2];
+	itoa(year,Year,10);
+	itoa(month,Month,10);
+	itoa(day,Day,10);
+	
+	Lcd4_Write_String(Year);
+	Lcd4_Write_String("/");
+	Lcd4_Write_String(Month);
+	Lcd4_Write_String("/");
+	Lcd4_Write_String(Day);
+}
+
+void DisplayAlarm(int x,int y){
+	Lcd4_Set_Cursor(x,y);
+	char Hour[2], Minute[2] , Second[2];
+	itoa(alarm_hour,Hour,10);
+	itoa(alarm_minute,Minute,10);
+	itoa(alarm_second,Second,10);
+	
+	Lcd4_Write_String(Hour);
+	Lcd4_Write_String(":");
+	Lcd4_Write_String(Minute);
+	Lcd4_Write_String(":");
+	Lcd4_Write_String(Second);
+	Lcd4_Write_String(" ");
+	
+	if (am_pm==0) 
+		Lcd4_Write_String("AM");
+	else 
+		Lcd4_Write_String("PM");
+	
+	Lcd4_Write_String("ON");
+	Lcd4_Write_String("/");
+	Lcd4_Write_String("OFF");
+}
+
+void DisplayTime(int x,int y){
+	Lcd4_Set_Cursor(x,y);
+	char Hour[2], Minute[2] , Second[2];
+	itoa(hour,Hour,10);
+	itoa(minute,Minute,10);
+	itoa(second,Second,10);
+	
+	Lcd4_Write_String(Hour);
+	Lcd4_Write_String(":");
+	Lcd4_Write_String(Minute);
+	Lcd4_Write_String(":");
+	Lcd4_Write_String(Second);
+	Lcd4_Write_String(" ");
+	
+	if (am_pm==0)
+		Lcd4_Write_String("AM");
+	else
+		Lcd4_Write_String("PM");
+}
+
+void DisplayTemperature(int x,int y){
+	Lcd4_Set_Cursor(x,y);
+	char Temperature[3];
+	itoa(temperature_c,Temperature,10);
+	Lcd4_Write_String(Temperature);
+	Lcd4_Write_String("*");
+	Lcd4_Write_String("C");
+}
+
+void DisplayMode0(){
+	//display date, temperature_c, alarm_state, time
+	Lcd4_Clear();
+	DisplayDate(1, 0);
+	DisplayTemperature(1,11);
+	DisplayTime(2,0);
+}
+
+void DisplayMode1(){
+	//display, temperature_c, alarm state, alarm
+	Lcd4_Clear();
+	DisplayDate(1,0);
+	DisplayTemperature(1,11);
+	DisplayAlarm(2,0);
+}
 
 unsigned short toggle(unsigned short d){
     if(d == 0)
@@ -87,13 +170,14 @@ void CTC_mode ()
 {
 	// Set the Timer Mode to CTC with 256 From scale
 	TCCR1A = 0;
-	TCCR1B |= (1<<WGM12)|(1<<CS10)|(1<<CS12);
+	TCCR1B |= (1<<WGM12)|(1<<CS12);
 	
 	// initialize counter
 	TCNT1 = 0;
 	
 	// initialize compare value
-	OCR1A = 0xc0;
+	//OCR1A = 0x7A11;
+	OCR1A = 0x408;
 	
 	//OCRn =  [ (clock_speed / Prescaler_value) * Desired_time_in_Seconds ] - 1
 	//OCRn =  [ (16 M / 256) * 1 ] - 1 = 62499 = F423 Hex
@@ -129,14 +213,16 @@ void buzzer(){
 void UpdateTime(){
     time = time%(86400);
     hour = (time/3600)%12 + 1;
-    minute = (time/60)%61;
-    second = time%61;
+	if((time/3600)%13==12)
+		toggle(am_pm);
+    minute = (time/60)%60;
+    second = time%60;
 }
 
 void UpdateDate(){
-    days = (days + time/(86400-1))%361;
-    year = days/361;
-    month = (days/13)%31;
+    days = (days + time/86400)%361;
+    year = (days/361)+1;
+    month = ((days/12)+1);
     day = days%31;
 }
 
@@ -146,100 +232,17 @@ void UpdateTemperature(){
 	ADCSRA |=(1<<ADSC);
 	// wait for conversion to complete, ADSC becomes ’0? again, till then, run loop continuously
 	while(ADCSRA & (1<<ADSC));
-	temperature_c= ADC ;
+	temperature_c= ADC/500 ;
 }
 
 void UpdateLCD(){
-	Lcd4_Clear();
     if(mode == 0){
-        //display year,month,day,temperature_c,alarm_state,hour,minute,second,am/pm
-		int y=(int)year;
-		int m=(int)month;
-		int d=(int)day;
-		char Year[4], Month[2], Day[2];
-		itoa(y,Year,10);
-		itoa(m,Month,10);
-		itoa(d,Day,10);
-		Lcd4_Set_Cursor(1,0);
-		Lcd4_Write_String(Year);
-		Lcd4_Write_String("/");
-		Lcd4_Write_String(Month);
-		Lcd4_Write_String("/");
-		Lcd4_Write_String(Day);
-		Lcd4_Write_String(" ");
-		
-		if (alarm_state==1) 
-			Lcd4_Write_String("\u23F0");
-			
-		Lcd4_Write_String(" ");
-		int temp=(int)temperature_c;
-		char Temperature[3];
-		itoa(temp,Temperature,10);
-		Lcd4_Write_String(Temperature);
-		Lcd4_Write_String("\u00B0");
-		Lcd4_Write_String("C");
-		
-		int h=(int)hour;
-		int min=(int)minute;
-		int sec=(int)second;
-		char Hour[2], Minute[2] , Second[2];
-		itoa(h,Hour,10);
-		itoa(min,Minute,10);
-		itoa(sec,Second,10);
-		Lcd4_Set_Cursor(2,0);
-		Lcd4_Write_String(Hour);
-		Lcd4_Write_String(":");
-		Lcd4_Write_String(Minute);
-		Lcd4_Write_String(":");
-		Lcd4_Write_String(Second);
-		Lcd4_Write_String(" ");
-		if (am_pm==0)
-			Lcd4_Write_String("AM");
-		else 
-			Lcd4_Write_String("PM");
+	    //display year,month,day,temperature_c,alarm_state,hour,minute,second,am/pm
+		DisplayMode0();
     }
     else if(mode == 1){
-        //display alarm_hour,alarm_minute,alarm_second,temperature_c
-		int y=(int)year;
-		int m=(int)month;
-		int d=(int)day;
-		char Year[4], Month[2], Day[2];
-		itoa(y,Year,10);
-		itoa(m,Month,10);
-		itoa(d,Day,10);
-		Lcd4_Set_Cursor(1,0);
-		Lcd4_Write_String(Year);
-		Lcd4_Write_String("/");
-		Lcd4_Write_String(Month);
-		Lcd4_Write_String("/");
-		Lcd4_Write_String(Day);
-		Lcd4_Write_String("  ");
-		int temp=(int)temperature_c;
-		char Temperature[3];
-		Lcd4_Write_String(Temperature);
-		Lcd4_Write_String("\u00B0");
-		Lcd4_Write_String("C");
-		
-		int h=(int)alarm_hour;
-		int min=(int)alarm_minute;
-		int sec=(int)alarm_second;
-		char Hour[2], Minute[2] , Second[2];
-		itoa(h,Hour,10);
-		itoa(min,Minute,10);
-		itoa(sec,Second,10);
-		Lcd4_Set_Cursor(2,0);
-		Lcd4_Write_String(Hour);
-		Lcd4_Write_String(":");
-		Lcd4_Write_String(Minute);
-		Lcd4_Write_String(":");
-		Lcd4_Write_String(Second);
-		Lcd4_Write_String(" ");
-		if (am_pm==0) Lcd4_Write_String("AM");
-		else Lcd4_Write_String("PM");
-		
-		Lcd4_Write_String("ON");
-		Lcd4_Write_String("/");
-		Lcd4_Write_String("OFF");
+	    //display alarm_hour,alarm_minute,alarm_second,temperature_c
+        DisplayMode1();
     }
 }
 
@@ -353,13 +356,16 @@ ISR(timer_vect){
     //every 1 second
     time++;
     UpdateDate();
-    UpdateTime();
     UpdateTemperature();
+    UpdateTime();
+	
     //check for the alarm
-    if(alarm_state == 1 && alarm_value == alarm_count)
-        fire_alarm = 1;
-    else if(alarm_state == 1)
-        alarm_count++;
+    if(alarm_state == 1){
+		if(alarm_value == alarm_count)
+			fire_alarm = 1;
+		else
+			alarm_count++;
+	}
 	
 	UpdateLCD();
 }
@@ -370,26 +376,28 @@ int main(void)
 	ADC_intialzation();
 	Lcd4_Init();
 	PCICR |= (1<<PCIE1)|(1<<PCIE2);
-	SET_BIT(PCMSK1,3);   //PCINT11
-	SET_BIT(PCMSK2,1);   //PCINT17
+	PCMSK1 |= (1<<PCINT11); //PCINT11 
+	PCMSK2 |= (1<<PCINT17); //PCINT17
 	EICRA |= (1<<ISC01)|(1<<ISC11); //The falling edge of INT1 and INT0
 	EIMSK |= (1<<INT0)|(1<<INT1);
+	sei();
+	
     while(1){
         if(fire_alarm == 1)
             buzzer();
         if(READ_BIT(ok_port, ok_bit) == 0){
             // button is clicked
+			while(READ_BIT(ok_port, ok_bit) == 0)
+				;
             //Close the alarm if it is fired
             if(fire_alarm == 1){
                 CancelAlarm();
-                UpdateLCD();
             }
             switch(mode){
                 case 0 : toggle_count = 0; break;
                 case 1 : mode = 0, toggle_count = 0; break;
             }
             UpdateLCD();
-            _delay_ms(500);
         }
     }
     return 0;
