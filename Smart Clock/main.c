@@ -25,6 +25,7 @@
 #define down_port
 #define down_vect PCINT1_vect
 #define LCD_port
+#define F_CPU 16000000ul
 
 #define SET_BIT(ADDRESS, BIT) ADDRESS |= (1<<BIT)
 #define RESET_BIT(ADDRESS, BIT) ADDRESS &= ~(1<<BIT)
@@ -35,7 +36,6 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 #include "adc.h"
-#include "LCD.h"
 
 unsigned short am_pm = 0;
 unsigned short mode = 0;
@@ -50,7 +50,6 @@ unsigned long time = 0;
 unsigned short hour = 1;
 unsigned short minute = 0;
 unsigned short second = 0;
-
 
 unsigned short days = 0;
 unsigned short day = 1;
@@ -72,6 +71,19 @@ unsigned short toggle(unsigned short d){
         d=0;
     return d;
 }
+
+void ADC_intialzation ()
+{
+	//Internal 1.1V Voltage Reference with external capacitor at AREF pin
+	ADMUX |=(1<<REFS0)|(1<<REFS1);
+	//ADC5
+	ADMUX |= (1<<MUX0)|(1<<MUX2);
+	//So for better accuracy of digital output we have to choose lesser frequency.
+	//For lesser ADC clock we are setting the presale of ADC to maximum value (128).
+	//Since we are using the internal clock of 1MHZ, the clock of ADC will be (1000000/128).
+	ADCSRA |=(1<<ADEN)|(1<<ADATE)|(1<<ADPS0)|(1<<ADPS1)|(1<<ADPS2);
+}
+
 void CTC_mode ()
 {
 	// Set the Timer Mode to CTC with 256 From scale
@@ -123,7 +135,12 @@ void UpdateDate(){
 }
 
 void UpdateTemperature(){
-    temperature_c = adc_read(temp_bit);
+	// temperature_c = adc_read(temp_bit);
+	//ADC Start Conversion
+	ADCSRA |=(1<<ADSC);
+	// wait for conversion to complete, ADSC becomes ’0? again, till then, run loop continuously
+	while(ADCSRA & (1<<ADSC));
+	temperature_c= ADC ;
 }
 
 void UpdateLCD(){
@@ -274,20 +291,21 @@ ISR(timer_vect){
     if(mode == 0){
         //clock mode
         //update LCD
-        LCD_SendString();
+        //LCD_SendString();
     }
     else if(mode == 1){
         //alarm mode
         //update LCD
-        LCD_SendString();
+       // LCD_SendString();
     }
 }
 
 int main(void)
 {
-	SET_BIT(PCMSK1,3)   //PCINT11
-	SET_BIT(PCMSK2,1)   //PCINT17
+	SET_BIT(PCMSK1,3);   //PCINT11
+	SET_BIT(PCMSK2,1);   //PCINT17
 	CTC_mode();
+	ADC_intialzation();
     while(1){
         if(fire_alarm == 1)
             buzzer();
