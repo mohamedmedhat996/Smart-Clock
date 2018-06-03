@@ -3,7 +3,7 @@
  *
  * Created: 6/1/2018 7:42:36 PM
  */
-#define buzzer_bit 0
+#define buzzer_bit 3
 #define buzzer_port PORTB
 #define timer_vect TIMER1_COMPA_vect
 #define mode_bit 2
@@ -53,12 +53,11 @@ unsigned short hour = 1;
 unsigned short minute = 0;
 unsigned short second = 0;
 
-unsigned short days = 1;
+unsigned long days = 726480;
 unsigned short day = 1;
-unsigned short year = 1;
+unsigned short year = 0;
 unsigned short month = 1;
 
-unsigned long alarm_count = 0;
 unsigned long alarm_value = 0;
 unsigned short alarm_state = 0;
 unsigned short fire_alarm = 0;
@@ -218,37 +217,34 @@ void AdjustAlarm(){
 void CancelAlarm(){
     fire_alarm = 0;
     alarm_state = 0;
-    alarm_count = 0;
+    RESET_BIT(buzzer_port, buzzer_bit);
 }
 
 void buzzer(){
     SET_BIT(buzzer_port, buzzer_bit);
-    _delay_ms(200);
-    RESET_BIT(buzzer_port, buzzer_bit);
-    _delay_ms(200);
 }
 
 void UpdateTime(){
-    time = time%(86400);
+    time = time%(86401);
     hour = (time/3600)%12 + 1;
 	if((time/3600)%13==12)
-		toggle(am_pm_t);
+		am_pm_t = toggle(am_pm_t);
     minute = (time/60)%60;
     second = time%60;
 }
 
 void UpdateDate(){
-    days = (days + time/86400)%361;
-    year = (days/361)+1;
-    month = ((days/12)+1);
-    day = days%31;
+    days = (days + time/86400)%730080;//2118 year
+    year = (days/360)%9000;
+    month = ((days/30)%12) + 1;
+    day = (days%30) + 1;
 }
 
 void UpdateAlarm(){
 	alarm_value = alarm_value%(86400);
 	alarm_hour = (alarm_value/3600)%12 + 1;
 	if((alarm_value/3600)%13==12)
-	toggle(am_pm_a);
+		am_pm_a = toggle(am_pm_a);
 	alarm_minute = (alarm_value/60)%60;
 	alarm_second = alarm_value%60;
 }
@@ -310,7 +306,7 @@ ISR(up_vect){
             case 2 : time += 60; break;
             case 3 : time++; break;
             case 4 : am_pm_t = toggle(am_pm_t); break;
-            case 5 : days += 1; break;
+            case 5 : days++; break;
             case 6 : days += 30; break;
             case 7 : days += 360; break;
         }
@@ -348,7 +344,7 @@ ISR(down_vect){
             case 2 : time -= 60; break;
             case 3 : time--; break;
             case 4 : am_pm_t = toggle(am_pm_t); break;
-            case 5 : days -= 1; break;
+            case 5 : days --; break;
             case 6 : days -= 30; break;
             case 7 : days -= 360; break;
         }
@@ -376,26 +372,41 @@ ISR(down_vect){
 ISR(timer_vect){
     //every 1 second
     time++;
-    UpdateDate();
+	if((time/86400) == 1)
+		UpdateDate();
     UpdateTemperature();
     UpdateTime();
 	
     //check for the alarm
     if(alarm_state == 1){
-		if(alarm_value == alarm_count)
+		if(alarm_value == time)
 			fire_alarm = 1;
-		else
-			alarm_count++;
 	}
 	
 	UpdateLCD();
 }
 
+void OK(){
+	while(READ_BIT(ok_port, ok_bit) == 0)
+	;
+	//Close the alarm if it is fired
+	if(fire_alarm == 1){
+		CancelAlarm();
+	}
+	switch(mode){
+		case 0 : toggle_count = 0; break;
+		case 1 : mode = 0, toggle_count = 0; break;
+	}
+	UpdateLCD();
+}
+
 int main(void)
 {
+	UpdateDate();
 	CTC_mode();
 	ADC_intialzation();
 	Lcd4_Init();
+	set_as_output(buzzer_bit,DDRB);
 	set_as_input(3,DDRC);
 	set_as_input(4,DDRC);
 	set_as_input(4,DDRC);
@@ -415,17 +426,7 @@ int main(void)
             buzzer();
         if(READ_BIT(ok_port, ok_bit) == 0){
             // button is clicked
-			while(READ_BIT(ok_port, ok_bit) == 0)
-				;
-            //Close the alarm if it is fired
-            if(fire_alarm == 1){
-                CancelAlarm();
-            }
-            switch(mode){
-                case 0 : toggle_count = 0; break;
-                case 1 : mode = 0, toggle_count = 0; break;
-            }
-            UpdateLCD();
+			OK();
         }
 		
     }
