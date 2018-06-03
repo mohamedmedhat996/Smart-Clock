@@ -6,22 +6,22 @@
 #define buzzer_bit 0
 #define buzzer_port PORTB
 #define timer_vect TIMER1_COMPA_vect
-#define mode_bit
-#define mode_port
+#define mode_bit 2
+#define mode_port PORTD
 #define mode_vect INT0_vect
 #define temp_bit
 #define temp_port
-#define toggle_bit
-#define toggle_port
+#define toggle_bit 3
+#define toggle_port PORTD
 #define toggle_vect INT1_vect
 #define ok_bit 4
 #define ok_port PINC
 #define ok_vect
-#define up_bit
-#define up_port
+#define up_bit 1
+#define up_port PORTD
 #define up_vect PCINT2_vect
-#define down_bit
-#define down_port
+#define down_bit 3
+#define down_port PORTC
 #define down_vect PCINT1_vect
 #define LCD_port
 #define F_CPU 16000000ul
@@ -30,6 +30,8 @@
 #define RESET_BIT(ADDRESS, BIT) ADDRESS &= ~(1<<BIT)
 #define TOGGLE_BIT(ADDRESS, BIT) ADDRESS ^= (1<<BIT)
 #define READ_BIT(ADDRESS, BIT) ((ADDRESS & (1<<BIT))>>BIT)
+#define set_as_output(bit,DDRX) {DDRX |= _BV(bit);}
+#define set_as_input(bit,DDRX) 	{DDRX &= ~_BV((bit));}
 
 #include <avr/io.h>
 #include <util/delay.h>
@@ -66,30 +68,39 @@ unsigned short alarm_second = 0;
 void DisplayDate(int x,int y){
 	Lcd4_Set_Cursor(x,y);
 	char Year[4], Month[2], Day[2];
-	itoa(year,Year,10);
-	itoa(month,Month,10);
-	itoa(day,Day,10);
+	itoa((int)year,Year,10);
+	itoa((int)month,Month,10);
+	itoa((int)day,Day,10);
 	
-	Lcd4_Write_String(Year);
-	Lcd4_Write_String("/");
-	Lcd4_Write_String(Month);
-	Lcd4_Write_String("/");
-	Lcd4_Write_String(Day);
+	Lcd4_Write_Char(Year[0]);
+	Lcd4_Write_Char(Year[1]);
+	Lcd4_Write_Char(Year[2]);
+	Lcd4_Write_Char(Year[3]);
+	Lcd4_Write_Char('/');
+	Lcd4_Write_Char(Month[0]);
+	Lcd4_Write_Char(Month[1]);
+	Lcd4_Write_Char('/');
+	Lcd4_Write_Char(Day[0]);
+	Lcd4_Write_Char(Day[1]);
 }
 
 void DisplayAlarm(int x,int y){
 	Lcd4_Set_Cursor(x,y);
 	char Hour[2], Minute[2] , Second[2];
-	itoa(alarm_hour,Hour,10);
-	itoa(alarm_minute,Minute,10);
-	itoa(alarm_second,Second,10);
+	itoa((int)alarm_hour,Hour,10);
+	itoa((int)alarm_minute,Minute,10);
+	itoa((int)alarm_second,Second,10);
 	
-	Lcd4_Write_String(Hour);
-	Lcd4_Write_String(":");
-	Lcd4_Write_String(Minute);
-	Lcd4_Write_String(":");
-	Lcd4_Write_String(Second);
-	Lcd4_Write_String(" ");
+	Lcd4_Write_Char(Hour[0]);
+	Lcd4_Write_Char(Hour[1]);
+	Lcd4_Write_Char(':');
+	Lcd4_Write_Char(Minute[0]);
+	Lcd4_Write_Char(Minute[1]);
+	Lcd4_Write_Char(':');
+	Lcd4_Write_Char(Second[0]);
+	Lcd4_Write_Char(Second[1]);
+	Lcd4_Write_Char(' ');
+	
 	
 	if (am_pm==0) 
 		Lcd4_Write_String("AM");
@@ -104,15 +115,18 @@ void DisplayAlarm(int x,int y){
 void DisplayTime(int x,int y){
 	Lcd4_Set_Cursor(x,y);
 	char Hour[2], Minute[2] , Second[2];
-	itoa(hour,Hour,10);
-	itoa(minute,Minute,10);
-	itoa(second,Second,10);
+	itoa((int)hour,Hour,10);
+	itoa((int)minute,Minute,10);
+	itoa((int)second,Second,10);
 	
-	Lcd4_Write_String(Hour);
+	Lcd4_Write_Char(Hour[0]);
+	Lcd4_Write_Char(Hour[1]);
 	Lcd4_Write_String(":");
-	Lcd4_Write_String(Minute);
+	Lcd4_Write_Char(Minute[0]);
+	Lcd4_Write_Char(Minute[1]);
 	Lcd4_Write_String(":");
-	Lcd4_Write_String(Second);
+	Lcd4_Write_Char(Second[0]);
+	Lcd4_Write_Char(Second[1]);
 	Lcd4_Write_String(" ");
 	
 	if (am_pm==0)
@@ -248,22 +262,20 @@ void UpdateLCD(){
 
 ISR(mode_vect){
     //mode button is clicked
-    //close the alarm if it is fired
+    //Close the alarm if it is fired
     if(fire_alarm == 1){
-        CancelAlarm();
-        UpdateLCD();
+	    CancelAlarm();
     }
     mode = (mode+1)%n_modes;
     toggle_count = 0;
-    _delay_ms(500);
+    _delay_ms(50);
 }
 
 ISR(toggle_vect){
     //toggle button is clicked
-    //close the alarm if it is fired
+    //Close the alarm if it is fired
     if(fire_alarm == 1){
-        CancelAlarm();
-        UpdateLCD();
+	    CancelAlarm();
     }
     switch(mode){
         case 0 : n_toggles = 8;break;
@@ -271,15 +283,14 @@ ISR(toggle_vect){
     }
 
     toggle_count = (toggle_count+1)%n_toggles;
-    _delay_ms(500);
+    _delay_ms(50);
 }
 
 ISR(up_vect){
     //up button is clicked
-    //close the alarm if it is fired
+    //Close the alarm if it is fired
     if(fire_alarm == 1){
-        CancelAlarm();
-        UpdateLCD();
+	    CancelAlarm();
     }
     if(mode == 0 ){
         switch(toggle_count){
@@ -310,15 +321,14 @@ ISR(up_vect){
             AdjustAlarm();
     }
     UpdateLCD();
-    _delay_ms(500);
+    _delay_ms(50);
 }
 
 ISR(down_vect){
     //down button is clicked
-    //close the alarm if it is fired
+    //Close the alarm if it is fired
     if(fire_alarm == 1){
-        CancelAlarm();
-        UpdateLCD();
+	    CancelAlarm();
     }
     if(mode == 0 ){
         switch(toggle_count){
@@ -349,7 +359,7 @@ ISR(down_vect){
             AdjustAlarm();
     }
     UpdateLCD();
-    _delay_ms(500);
+    _delay_ms(50);
 }
 
 ISR(timer_vect){
@@ -375,6 +385,12 @@ int main(void)
 	CTC_mode();
 	ADC_intialzation();
 	Lcd4_Init();
+	set_as_input(3,DDRC);
+	set_as_input(4,DDRC);
+	set_as_input(4,DDRC);
+	set_as_input(1,DDRD);
+	set_as_input(2,DDRD);
+	set_as_input(3,DDRD);
 	PCICR |= (1<<PCIE1)|(1<<PCIE2);
 	PCMSK1 |= (1<<PCINT11); //PCINT11 
 	PCMSK2 |= (1<<PCINT17); //PCINT17
@@ -383,6 +399,7 @@ int main(void)
 	sei();
 	
     while(1){
+		
         if(fire_alarm == 1)
             buzzer();
         if(READ_BIT(ok_port, ok_bit) == 0){
@@ -399,6 +416,7 @@ int main(void)
             }
             UpdateLCD();
         }
+		
     }
     return 0;
 	
