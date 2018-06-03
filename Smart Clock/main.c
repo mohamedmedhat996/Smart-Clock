@@ -225,11 +225,14 @@ void buzzer(){
 }
 
 void UpdateTime(){
-    time = time%(86401);
-    hour = (time/3600)%12 + 1;
-	if((time/3600)%13==12)
+    time = time%(86401);//maximum is one day
+	if((time/3600)%12+1 != hour){//the number of hours is different from that is already stored
+		hour = ((time/3600)%12+1)%13;
+		if(hour==12)
 		am_pm_t = toggle(am_pm_t);
-    minute = (time/60)%60;
+	}
+	if((time/60)%60 != minute)
+		minute = ((time/60)%60)%60;
     second = time%60;
 }
 
