@@ -2,7 +2,6 @@
  * Smart Clock.c
  *
  * Created: 6/1/2018 7:42:36 PM
-<<<<<<< Updated upstream
  */
 #define buzzer_bit 0
 #define buzzer_port PORTB
@@ -35,7 +34,7 @@
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
-#include "adc.h"
+#include "LCD/LCD.h"
 
 unsigned short am_pm = 0;
 unsigned short mode = 0;
@@ -146,9 +145,87 @@ void UpdateTemperature(){
 void UpdateLCD(){
     if(mode == 0){
         //display year,month,day,temperature_c,alarm_state,hour,minute,second,am/pm
+		int y=(int)year;
+		int m=(int)month;
+		int d=(int)day;
+		char Year[4], Month[2], Day[2];
+		itoa(y,Year,10);
+		itoa(m,Month,10);
+		itoa(d,Day,10);
+		Lcd4_Set_Cursor(1,0);
+		Lcd4_Write_String(Year);
+		Lcd4_Write_String("/");
+		Lcd4_Write_String(Month);
+		Lcd4_Write_String("/");
+		Lcd4_Write_String(Day);
+		Lcd4_Write_String(" ");
+		if (alarm_state==1) Lcd4_Write_String("\u23F0");
+		Lcd4_Write_String(" ");
+		int temp=(int)temperature_c;
+		char Temperature[3];
+		Lcd4_Write_String(Temperature);
+		Lcd4_Write_String("\u00B0");
+		Lcd4_Write_String("C");
+		
+		int h=(int)hour;
+		int min=(int)minute;
+		int sec=(int)second;
+		char Hour[2], Minute[2] , Second[2];
+		itoa(h,Hour,10);
+		itoa(min,Minute,10);
+		itoa(sec,Second,10);
+		Lcd4_Set_Cursor(2,0);
+		Lcd4_Write_String(Hour);
+		Lcd4_Write_String(":");
+		Lcd4_Write_String(Minute);
+		Lcd4_Write_String(":");
+		Lcd4_Write_String(Second);
+		Lcd4_Write_String(" ");
+		if (am_pm==0) Lcd4_Write_String("AM");
+		else Lcd4_Write_String("PM");
     }
     else if(mode == 1){
         //display alarm_hour,alarm_minute,alarm_second,temperature_c
+		int y=(int)year;
+		int m=(int)month;
+		int d=(int)day;
+		char Year[4], Month[2], Day[2];
+		itoa(y,Year,10);
+		itoa(m,Month,10);
+		itoa(d,Day,10);
+		Lcd4_Set_Cursor(1,0);
+		Lcd4_Write_String(Year);
+		Lcd4_Write_String("/");
+		Lcd4_Write_String(Month);
+		Lcd4_Write_String("/");
+		Lcd4_Write_String(Day);
+		Lcd4_Write_String("  ");
+		int temp=(int)temperature_c;
+		char Temperature[3];
+		Lcd4_Write_String(Temperature);
+		Lcd4_Write_String("\u00B0");
+		Lcd4_Write_String("C");
+		
+		int h=(int)alarm_hour;
+		int min=(int)alarm_minute;
+		int sec=(int)alarm_second;
+		char Hour[2], Minute[2] , Second[2];
+		itoa(h,Hour,10);
+		itoa(min,Minute,10);
+		itoa(sec,Second,10);
+		Lcd4_Set_Cursor(2,0);
+		Lcd4_Write_String(Hour);
+		Lcd4_Write_String(":");
+		Lcd4_Write_String(Minute);
+		Lcd4_Write_String(":");
+		Lcd4_Write_String(Second);
+		Lcd4_Write_String(" ");
+		if (am_pm==0) Lcd4_Write_String("AM");
+		else Lcd4_Write_String("PM");
+		
+		Lcd4_Write_String("ON");
+		Lcd4_Write_String("/");
+		Lcd4_Write_String("OFF");
     }
 }
 
@@ -258,23 +335,6 @@ ISR(down_vect){
     _delay_ms(500);
 }
 
-/*
-ISR(ok_vect){
-    //ok button is clicked
-    //close the alarm if it is fired
-    if(fire_alarm == 1){
-        CancelAlarm();
-        UpdateLCD();
-    }
-    switch(mode){
-        case 0 : toggle_count = 0;
-        case 1 : mode = 0;
-    }
-    UpdateLCD();
-    _delay_ms(500);
-}
-*/
-
 ISR(timer_vect){
     //every 1 second
     time++;
@@ -302,10 +362,14 @@ ISR(timer_vect){
 
 int main(void)
 {
-	SET_BIT(PCMSK1,3);   //PCINT11
-	SET_BIT(PCMSK2,1);   //PCINT17
 	CTC_mode();
 	ADC_intialzation();
+	Lcd4_Init();
+	PCICR |= (1<<PCIE1)|(1<<PCIE2);
+	SET_BIT(PCMSK1,3);   //PCINT11
+	SET_BIT(PCMSK2,1);   //PCINT17
+	EICRA |= (1<<ISC01)|(1<<ISC11); //The falling edge of INT1 and INT0
+	EIMSK |= (1<<INT0)|(1<<INT1);
     while(1){
         if(fire_alarm == 1)
             buzzer();
@@ -324,6 +388,6 @@ int main(void)
             _delay_ms(500);
         }
     }
-
     return 0;
+	
 }
