@@ -143,6 +143,7 @@ void UpdateTemperature(){
 }
 
 void UpdateLCD(){
+	Lcd4_Clear();
     if(mode == 0){
         //display year,month,day,temperature_c,alarm_state,hour,minute,second,am/pm
 		int y=(int)year;
@@ -159,10 +160,14 @@ void UpdateLCD(){
 		Lcd4_Write_String("/");
 		Lcd4_Write_String(Day);
 		Lcd4_Write_String(" ");
-		if (alarm_state==1) Lcd4_Write_String("\u23F0");
+		
+		if (alarm_state==1) 
+			Lcd4_Write_String("\u23F0");
+			
 		Lcd4_Write_String(" ");
 		int temp=(int)temperature_c;
 		char Temperature[3];
+		itoa(temp,Temperature,10);
 		Lcd4_Write_String(Temperature);
 		Lcd4_Write_String("\u00B0");
 		Lcd4_Write_String("C");
@@ -181,8 +186,10 @@ void UpdateLCD(){
 		Lcd4_Write_String(":");
 		Lcd4_Write_String(Second);
 		Lcd4_Write_String(" ");
-		if (am_pm==0) Lcd4_Write_String("AM");
-		else Lcd4_Write_String("PM");
+		if (am_pm==0)
+			Lcd4_Write_String("AM");
+		else 
+			Lcd4_Write_String("PM");
     }
     else if(mode == 1){
         //display alarm_hour,alarm_minute,alarm_second,temperature_c
@@ -346,18 +353,8 @@ ISR(timer_vect){
         fire_alarm = 1;
     else if(alarm_state == 1)
         alarm_count++;
-
-    //check for mode
-    if(mode == 0){
-        //clock mode
-        //update LCD
-        //LCD_SendString();
-    }
-    else if(mode == 1){
-        //alarm mode
-        //update LCD
-       // LCD_SendString();
-    }
+	
+	UpdateLCD();
 }
 
 int main(void)
