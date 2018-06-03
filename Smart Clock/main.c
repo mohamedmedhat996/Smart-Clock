@@ -38,7 +38,8 @@
 #include <avr/interrupt.h>
 #include "LCD/LCD.h"
 
-unsigned short am_pm = 0;
+unsigned short am_pm_t = 0;
+unsigned short am_pm_a = 0;
 unsigned short mode = 0;
 unsigned short n_modes = 2;
 
@@ -61,7 +62,7 @@ unsigned long alarm_count = 0;
 unsigned long alarm_value = 0;
 unsigned short alarm_state = 0;
 unsigned short fire_alarm = 0;
-unsigned short alarm_hour = 0;
+unsigned short alarm_hour = 1;
 unsigned short alarm_minute = 0;
 unsigned short alarm_second = 0;
 
@@ -101,15 +102,16 @@ void DisplayAlarm(int x,int y){
 	Lcd4_Write_Char(Second[1]);
 	Lcd4_Write_Char(' ');
 	
-	
-	if (am_pm==0) 
+	if (am_pm_a==0) 
 		Lcd4_Write_String("AM");
 	else 
 		Lcd4_Write_String("PM");
+	Lcd4_Write_Char(' ');
 	
-	Lcd4_Write_String("ON");
-	Lcd4_Write_String("/");
-	Lcd4_Write_String("OFF");
+	if(alarm_state == 1)
+		Lcd4_Write_String("ON");
+	else
+		Lcd4_Write_String("OFF");
 }
 
 void DisplayTime(int x,int y){
@@ -129,19 +131,21 @@ void DisplayTime(int x,int y){
 	Lcd4_Write_Char(Second[1]);
 	Lcd4_Write_String(" ");
 	
-	if (am_pm==0)
+	if (am_pm_t==0)
 		Lcd4_Write_String("AM");
 	else
 		Lcd4_Write_String("PM");
 }
 
-void DisplayTemperature(int x,int y){
+void DisplayTemperature(int x, int y){
 	Lcd4_Set_Cursor(x,y);
 	char Temperature[3];
-	itoa(temperature_c,Temperature,10);
-	Lcd4_Write_String(Temperature);
-	Lcd4_Write_String("*");
-	Lcd4_Write_String("C");
+	itoa((int)temperature_c,Temperature,10);
+	Lcd4_Write_Char(Temperature[0]);
+	Lcd4_Write_Char(Temperature[1]);
+	Lcd4_Write_Char(Temperature[2]);
+	Lcd4_Write_Char('*');
+	Lcd4_Write_Char('C');
 }
 
 void DisplayMode0(){
@@ -228,7 +232,7 @@ void UpdateTime(){
     time = time%(86400);
     hour = (time/3600)%12 + 1;
 	if((time/3600)%13==12)
-		toggle(am_pm);
+		toggle(am_pm_t);
     minute = (time/60)%60;
     second = time%60;
 }
@@ -238,6 +242,15 @@ void UpdateDate(){
     year = (days/361)+1;
     month = ((days/12)+1);
     day = days%31;
+}
+
+void UpdateAlarm(){
+	alarm_value = alarm_value%(86400);
+	alarm_hour = (alarm_value/3600)%12 + 1;
+	if((alarm_value/3600)%13==12)
+	toggle(am_pm_a);
+	alarm_minute = (alarm_value/60)%60;
+	alarm_second = alarm_value%60;
 }
 
 void UpdateTemperature(){
@@ -268,7 +281,6 @@ ISR(mode_vect){
     }
     mode = (mode+1)%n_modes;
     toggle_count = 0;
-    _delay_ms(50);
 }
 
 ISR(toggle_vect){
@@ -283,7 +295,6 @@ ISR(toggle_vect){
     }
 
     toggle_count = (toggle_count+1)%n_toggles;
-    _delay_ms(50);
 }
 
 ISR(up_vect){
@@ -298,7 +309,7 @@ ISR(up_vect){
             case 1 : time += 3600; break;
             case 2 : time += 60; break;
             case 3 : time++; break;
-            case 4 : toggle(am_pm); break;
+            case 4 : am_pm_t = toggle(am_pm_t); break;
             case 5 : days += 1; break;
             case 6 : days += 30; break;
             case 7 : days += 360; break;
@@ -312,16 +323,16 @@ ISR(up_vect){
             case 1 : alarm_value += 3600; break;
             case 2 : alarm_value += 60; break;
             case 3 : alarm_value++; break;
-            case 4 : am_pm = toggle(am_pm); break;
+            case 4 : am_pm_a = toggle(am_pm_a); break;
             case 5 : alarm_state = toggle(alarm_state); break;;
         }
         if(alarm_state == 0)
             CancelAlarm();
         else
             AdjustAlarm();
+		UpdateAlarm();
     }
     UpdateLCD();
-    _delay_ms(50);
 }
 
 ISR(down_vect){
@@ -336,7 +347,7 @@ ISR(down_vect){
             case 1 : time -= 3600; break;
             case 2 : time -= 60; break;
             case 3 : time--; break;
-            case 4 : toggle(am_pm); break;
+            case 4 : am_pm_t = toggle(am_pm_t); break;
             case 5 : days -= 1; break;
             case 6 : days -= 30; break;
             case 7 : days -= 360; break;
@@ -350,16 +361,16 @@ ISR(down_vect){
             case 1 : alarm_value -= 3600; break;
             case 2 : alarm_value -= 60; break;
             case 3 : alarm_value--; break;
-            case 4 : am_pm = toggle(am_pm); break;
+            case 4 : am_pm_a = toggle(am_pm_a); break;
             case 5 : alarm_state = toggle(alarm_state); break;
         }
         if(alarm_state == 0)
             CancelAlarm();
         else
             AdjustAlarm();
+        UpdateAlarm();
     }
     UpdateLCD();
-    _delay_ms(50);
 }
 
 ISR(timer_vect){
