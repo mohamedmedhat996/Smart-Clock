@@ -86,13 +86,20 @@ void ADC_intialzation ()
 void CTC_mode ()
 {
 	// Set the Timer Mode to CTC with 256 From scale
-	TCCR1B |= (1<<WGM12)|(1<<CS12);
-
+	TCCR1A = 0;
+	TCCR1B |= (1<<WGM12)|(1<<CS10)|(1<<CS12);
+	
+	// initialize counter
+	TCNT1 = 0;
+	
+	// initialize compare value
+	OCR1A = 0xc0;
+	
 	//OCRn =  [ (clock_speed / Prescaler_value) * Desired_time_in_Seconds ] - 1
 	//OCRn =  [ (16 M / 256) * 1 ] - 1 = 62499 = F423 Hex
 	// Set the value that you want to count to
-	OCR1AH = 0xF4;
-	OCR1AL =0x23;
+	//OCR1AH = 0xF4;
+	//OCR1AL =0x23;
 
 	TIMSK1 |= (1 << OCIE0A);    //Set the ISR COMPA vector
 
