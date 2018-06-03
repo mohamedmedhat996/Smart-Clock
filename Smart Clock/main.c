@@ -55,8 +55,8 @@ unsigned short second = 0;
 
 unsigned long days = 726480;
 unsigned short day = 1;
-unsigned short year = 0;
-unsigned short month = 1;
+unsigned short year = 2018;
+unsigned short month = 6;
 
 unsigned long alarm_value = 0;
 unsigned short alarm_state = 0;
@@ -185,16 +185,13 @@ void ADC_intialzation ()
 
 void CTC_mode ()
 {
-	// Set the Timer Mode to CTC with 256 From scale
+		// Set the Timer Mode to CTC with 256 From scale
 	TCCR1A = 0;
 	TCCR1B |= (1<<WGM12)|(1<<CS12);
 	
-	// initialize counter
-	TCNT1 = 0;
-	
 	// initialize compare value
 	//OCR1A = 0x7A11;
-	OCR1A = 0x408;
+	OCR1A = 0xF08;
 	
 	//OCRn =  [ (clock_speed / Prescaler_value) * Desired_time_in_Seconds ] - 1
 	//OCRn =  [ (16 M / 256) * 1 ] - 1 = 62499 = F423 Hex
@@ -252,13 +249,14 @@ void UpdateAlarm(){
 	alarm_second = alarm_value%60;
 }
 
-void UpdateTemperature(){
+void UpdateTemperature()
+{
 	// temperature_c = adc_read(temp_bit);
 	//ADC Start Conversion
 	ADCSRA |=(1<<ADSC);
-	// wait for conversion to complete, ADSC becomes ’0? again, till then, run loop continuously
+	// wait for conversion to complete, ADSC becomes ï¿½0? again, till then, run loop continuously
 	while(ADCSRA & (1<<ADSC));
-	temperature_c= ADC/500 ;
+	temperature_c = (ADC*34.5) / (321);
 }
 
 void UpdateLCD(){
@@ -292,7 +290,6 @@ ISR(toggle_vect){
         case 0 : n_toggles = 8;break;
         case 1 : n_toggles = 6;break;
     }
-
     toggle_count = (toggle_count+1)%n_toggles;
 }
 
@@ -332,6 +329,7 @@ ISR(up_vect){
 		UpdateAlarm();
     }
     UpdateLCD();
+	_delay_ms(30);
 }
 
 ISR(down_vect){
@@ -370,6 +368,7 @@ ISR(down_vect){
         UpdateAlarm();
     }
     UpdateLCD();
+	_delay_ms(30);
 }
 
 ISR(timer_vect){
@@ -385,7 +384,6 @@ ISR(timer_vect){
 		if(alarm_value == time)
 			fire_alarm = 1;
 	}
-	
 	UpdateLCD();
 }
 
@@ -434,5 +432,4 @@ int main(void)
 		
     }
     return 0;
-	
 }
