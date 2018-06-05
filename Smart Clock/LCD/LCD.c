@@ -199,9 +199,9 @@ void Lcd4_Cmd(char a)
 	pinChange(RS,0);             // => RS = 0
 	Lcd4_Port(a);
 	pinChange(EN,1);            // => E = 1
-	_delay_ms(1);
+	_delay_us(1);
 	pinChange(EN,0);             // => E = 0
-	_delay_ms(1);
+	_delay_us(1);
 }
 
 void Lcd4_Clear()
@@ -236,12 +236,12 @@ void Lcd4_Init()
 	DDRD = 0xFF;
 	DDRB = 0xFF;
 	Lcd4_Port(0x00);
-	_delay_ms(20);
+	_delay_us(20);
 	///////////// Reset process from datasheet /////////
 	Lcd4_Cmd(0x03);
-	_delay_ms(5);
+	_delay_us(5);
 	Lcd4_Cmd(0x03);
-	_delay_ms(11);
+	_delay_us(11);
 	Lcd4_Cmd(0x03);
 	/////////////////////////////////////////////////////
 	Lcd4_Cmd(0x02);
@@ -261,14 +261,14 @@ void Lcd4_Write_Char(char a)
 	pinChange(RS,1);             // => RS = 1
 	Lcd4_Port(y>>4);             //Data transfer
 	pinChange(EN,1);
-	_delay_ms(1);
+	_delay_us(1);
 	pinChange(EN,0);
-	_delay_ms(1);
+	_delay_us(1);
 	Lcd4_Port(temp);
 	pinChange(EN,1);
-	_delay_ms(1);
+	_delay_us(1);
 	pinChange(EN,0);
-	_delay_ms(1);
+	_delay_us(1);
 }
 
 void Lcd4_Write_String(char *a)

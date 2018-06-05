@@ -24,7 +24,7 @@
 #define down_port PORTC
 #define down_vect PCINT1_vect
 #define LCD_port
-#define F_CPU 16000000ul
+#define F_CPU 8000000ul
 
 #define SET_BIT(ADDRESS, BIT) ADDRESS |= (1<<BIT)
 #define RESET_BIT(ADDRESS, BIT) ADDRESS &= ~(1<<BIT)
@@ -194,7 +194,7 @@ void CTC_mode ()
 	
 	// initialize compare value
 	//OCR1A = 0x7A11;
-	OCR1A = 0xF08;
+	OCR1A = 0x508;
 	
 	//OCRn =  [ (clock_speed / Prescaler_value) * Desired_time_in_Seconds ] - 1
 	//OCRn =  [ (16 M / 256) * 1 ] - 1 = 62499 = F423 Hex
@@ -202,7 +202,7 @@ void CTC_mode ()
 	//OCR1AH = 0xF4;
 	//OCR1AL =0x23;
 
-	TIMSK1 |= (1 << OCIE0A);    //Set the ISR COMPA vector
+	TIMSK1 |= (1 << OCIE1A);    //Set the ISR COMPA vector
 
 	sei();         //enable interrupts
 }
@@ -379,7 +379,7 @@ ISR(timer_vect){
     time++;
 	if((time/86400) == 1)
 		UpdateDate();
-    UpdateTemperature();
+    //UpdateTemperature();
     UpdateTime();
 	
     //check for the alarm
@@ -406,17 +406,21 @@ void OK(){
 
 int main(void)
 {
-	UpdateDate();
+	Lcd4_Init();
+	UpdateLCD();
 	CTC_mode();
 	ADC_intialzation();
-	Lcd4_Init();
 	set_as_output(buzzer_bit,DDRB);
 	set_as_input(3,DDRC);
-	set_as_input(4,DDRC);
 	set_as_input(4,DDRC);
 	set_as_input(1,DDRD);
 	set_as_input(2,DDRD);
 	set_as_input(3,DDRD);
+	SET_BIT(PORTC,3);
+	SET_BIT(PORTC,4);
+	SET_BIT(PORTD,1);
+	SET_BIT(PORTD,2);
+	SET_BIT(PORTD,3);
 	PCICR |= (1<<PCIE1)|(1<<PCIE2);
 	PCMSK1 |= (1<<PCINT11); //PCINT11 
 	PCMSK2 |= (1<<PCINT17); //PCINT17
